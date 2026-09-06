@@ -1,0 +1,10 @@
+﻿# Windows system and volume files
+$RECYCLE.BIN/
+System Volume Information/
+*.lnk
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.bak

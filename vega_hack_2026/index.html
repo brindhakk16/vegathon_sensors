@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VEGA Smart Sensing Platform</title>
+  <meta name="description" content="VEGA Aries V2 Smart Sensing Platform — AMG8833 Thermal Camera and MQ-135 Air Quality real-time dashboard.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- ===== SHARED TOP NAV (pages 2 & 3) ===== -->
+  <nav class="top-nav" id="topNav">
+    <button class="nav-back-btn" onclick="navigateTo(0)" id="navBackBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>
+      Home
+    </button>
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="tabThermal" onclick="navigateTo(1)">🔥 Thermal Monitoring</button>
+      <button class="nav-tab" id="tabAir" onclick="navigateTo(2)">💨 Air Quality & Flammable Gas</button>
+    </div>
+    <div class="nav-right-logo">
+      <img src="vega_logo2.png" alt="VEGA" class="nav-vega-logo">
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       PAGE 1 — LANDING / HOME
+       ============================================================ -->
+  <section class="page active" id="page0">
+    <canvas id="particleCanvas" class="particle-canvas"></canvas>
+
+    <div class="landing-wrap">
+
+      <!-- Hero banner image (merged board + logo) -->
+      <div class="hero-img-wrap">
+        <img src="vega_landing.jpg" alt="VEGA Smart Sensing Platform" class="hero-img">
+      </div>
+
+      <!-- Navigation Cards -->
+      <div class="nav-cards-row">
+
+        <!-- Thermal Monitoring Card -->
+        <button class="nav-card card-thermal" onclick="navigateTo(1)" id="cardThermal">
+          <div class="nav-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+            </svg>
+          </div>
+          <div class="nav-card-text">
+            <span class="nav-card-title">Thermal Monitoring</span>
+            <span class="nav-card-sub">AMG8833 &middot; 8x8 Grid-EYE</span>
+          </div>
+          <div class="nav-card-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+            </svg>
+          </div>
+        </button>
+
+        <!-- Air Quality Card -->
+        <button class="nav-card card-air" onclick="navigateTo(2)" id="cardAir">
+          <div class="nav-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>
+            </svg>
+          </div>
+          <div class="nav-card-text">
+            <span class="nav-card-title">Air Quality</span>
+            <span class="nav-card-sub">MQ-135 &middot; Multi-Gas Detection</span>
+          </div>
+          <div class="nav-card-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+            </svg>
+          </div>
+        </button>
+      </div>
+
+      <!-- Board badges row -->
+      <div class="landing-footer-badges">
+        <div class="footer-badge">
+          <img src="aries_board2.png" alt="VEGA Aries V2" class="footer-board-img">
+          <span>VEGA Aries V2.0</span>
+        </div>
+        <div class="footer-divider"></div>
+        <div class="footer-badge">
+          <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px;color:#3b82f6"><circle cx="10" cy="10" r="5"/></svg>
+          RISC-V Architecture
+        </div>
+        <div class="footer-divider"></div>
+        <div class="footer-badge">
+          <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px;color:#10b981"><circle cx="10" cy="10" r="5"/></svg>
+          I2C / SPI Interface
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PAGE 2 — THERMAL MONITORING (AMG8833)
+       ============================================================ -->
+  <section class="page hidden" id="page1">
+    <div class="app-container">
+
+      <!-- Connection controls -->
+      <div class="thermal-connect-bar">
+        <div class="conn-status-badge" id="statusBadge">
+          <span class="status-dot"></span>
+          <span class="status-text">Disconnected — Connect VEGA Aries V2 via USB</span>
+        </div>
+        <div class="connect-controls">
+          <select id="baudRate" class="select-input">
+            <option value="115200">115200 Baud</option>
+            <option value="9600">9600 Baud</option>
+            <option value="57600">57600 Baud</option>
+          </select>
+          <button id="btnConnect" class="btn btn-primary">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            Connect Board
+          </button>
+        </div>
+      </div>
+
+      <!-- Metric cards -->
+      <div class="metrics-grid">
+        <div class="metric-card card-max">
+          <div class="card-glow"></div>
+          <div class="metric-icon red-glow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </div>
+          <div class="metric-info"><h3>Max Temp</h3><div class="value-display"><span id="valMax">--.-</span><span class="unit">°C</span></div></div>
+        </div>
+        <div class="metric-card card-min">
+          <div class="card-glow"></div>
+          <div class="metric-icon blue-glow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m11.314 11.314l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+          </div>
+          <div class="metric-info"><h3>Min Temp</h3><div class="value-display"><span id="valMin">--.-</span><span class="unit">°C</span></div></div>
+        </div>
+        <div class="metric-card card-avg">
+          <div class="card-glow"></div>
+          <div class="metric-icon green-glow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          </div>
+          <div class="metric-info"><h3>Avg Temp</h3><div class="value-display"><span id="valAvg">--.-</span><span class="unit">°C</span></div></div>
+        </div>
+        <div class="metric-card card-therm">
+          <div class="card-glow"></div>
+          <div class="metric-icon gold-glow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+          </div>
+          <div class="metric-info"><h3>Thermistor</h3><div class="value-display"><span id="valTherm">--.-</span><span class="unit">°C</span></div></div>
+        </div>
+      </div>
+
+      <!-- ===== REFERENCE-MATCHED VISUALIZER ===== -->
+      <div class="thermal-section-grid">
+
+        <!-- Left: The thermal visualizer panel (matches reference image exactly) -->
+        <div class="viz-panel">
+          <!-- Top label bar -->
+          <div class="viz-top-bar">
+            AMG8833 original 8*8 pixel image ('selfie') and after interpolation to 24*24 pixels
+          </div>
+
+          <!-- Two canvases side by side with black borders -->
+          <div class="viz-canvases-row">
+            <!-- Raw 8x8 -->
+            <div class="viz-canvas-wrap">
+              <div class="viz-black-frame">
+                <canvas id="rawCanvas" width="320" height="320"></canvas>
+                <div id="rawTooltip" class="canvas-tooltip"></div>
+              </div>
+              <div class="viz-axis-label">
+                <span class="axis-arr">&#9668;</span>
+                <span class="axis-txt">original: 8x8 color tiles</span>
+                <span class="axis-arr">&#9658;</span>
+              </div>
+            </div>
+
+            <!-- Interpolated -->
+            <div class="viz-canvas-wrap">
+              <div class="viz-black-frame">
+                <canvas id="interpolatedCanvas" width="320" height="320"></canvas>
+                <div id="interpolatedTooltip" class="canvas-tooltip"></div>
+              </div>
+              <div class="viz-axis-label">
+                <span class="axis-arr">&#9668;</span>
+                <span class="axis-txt" id="lblInterpolatedTitle">interpolated: 24x24 color tiles</span>
+                <span class="axis-arr">&#9658;</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Controls strip below -->
+          <div class="viz-controls-strip">
+            <label class="checkbox-container">
+              <input type="checkbox" id="chkShowValues">
+              <span class="checkmark"></span>
+              Show temp values on raw grid
+            </label>
+            <div class="viz-strip-right">
+              <select id="paletteSelect" class="select-input-sm">
+                <option value="thermal" selected>Thermal (Reference)</option>
+                <option value="rainbow">Rainbow</option>
+                <option value="ironbow">Ironbow</option>
+                <option value="jet">Jet</option>
+                <option value="grayscale">Grayscale</option>
+                <option value="icefire">Ice+Fire</option>
+              </select>
+              <select id="smoothingFactor" class="select-input-sm">
+                <option value="2">2x (16x16)</option>
+                <option value="3" selected>3x (24x24)</option>
+                <option value="4">4x (32x32)</option>
+                <option value="6">6x (48x48)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: controls + chart column -->
+        <div class="thermal-right-col">
+          <!-- Scale mode card -->
+          <div class="glass-card">
+            <h2 class="card-title">Display Settings</h2>
+            <div class="settings-stack">
+              <div class="setting-row">
+                <label for="scaleMode">Scale Mode</label>
+                <select id="scaleMode" class="select-input full-width">
+                  <option value="auto">Auto (Dynamic Min/Max)</option>
+                  <option value="manual">Manual Range</option>
+                </select>
+              </div>
+              <div class="manual-range-group hidden" id="manualRangeGroup">
+                <div class="range-labels">
+                  <label>Range (°C)</label>
+                  <span class="range-values"><span id="lblMinTemp">20</span> — <span id="lblMaxTemp">40</span></span>
+                </div>
+                <div class="dual-range-container">
+                  <input type="range" id="rangeMin" min="0" max="80" value="20">
+                  <input type="range" id="rangeMax" min="0" max="80" value="40">
+                </div>
+              </div>
+            </div>
+            <div class="action-row">
+              <button id="btnPause" class="btn btn-secondary">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Pause
+              </button>
+              <button id="btnExport" class="btn btn-secondary">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Export CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- History chart -->
+          <div class="glass-card chart-card">
+            <div class="chart-card-header">
+              <h2 class="card-title">Temperature History</h2>
+              <span class="fps-badge">FPS: <span id="valFPS">0</span></span>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="historyChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PAGE 3 — AIR QUALITY (MQ-135 Dummy)
+       ============================================================ -->
+  <section class="page hidden" id="page2">
+    <div class="app-container">
+
+      <!-- Connection controls (Air Quality Page) -->
+      <div class="thermal-connect-bar">
+        <div class="conn-status-badge" id="statusBadgeAir">
+          <span class="status-dot"></span>
+          <span class="status-text">Disconnected — Connect VEGA Aries V2 via USB</span>
+        </div>
+        <div class="connect-controls">
+          <select id="baudRateAir" class="select-input">
+            <option value="115200">115200 Baud</option>
+            <option value="9600">9600 Baud</option>
+            <option value="57600">57600 Baud</option>
+          </select>
+          <button id="btnConnectAir" class="btn btn-primary">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            Connect Board
+          </button>
+        </div>
+      </div>
+
+      <!-- AQI overview bar -->
+      <div class="aq-top-bar">
+        <div class="aq-live-pill" id="aqLivePill">
+          <span class="live-dot"></span>
+          Waiting for Hardware Connection — Click Connect Board
+        </div>
+        <div class="aq-overall-badge" id="aqOverallBadge">AQI: Good</div>
+      </div>
+
+      <div class="aq-layout">
+
+        <!-- Gauge card -->
+        <div class="glass-card aqi-card">
+          <h2 class="card-title">Air Quality Index</h2>
+          <div class="gauge-wrap">
+            <canvas id="aqiGaugeCanvas" width="280" height="175"></canvas>
+          </div>
+          <div class="aqi-readout">
+            <span class="aqi-big" id="aqiValue">42</span>
+            <span class="aqi-lbl" id="aqiLabel">Good</span>
+          </div>
+          <div class="aqi-legend">
+            <span class="leg leg-good">Good<br>0-50</span>
+            <span class="leg leg-mod">Moderate<br>51-100</span>
+            <span class="leg leg-sens">Sensitive<br>101-150</span>
+            <span class="leg leg-bad">Unhealthy<br>151+</span>
+          </div>
+          <div class="aq-info-strip">
+            <span>Sensor Temp: <strong id="infoSensorTemp">28.4°C</strong></span>
+            <span>ADC: <strong id="infoADC">512</strong></span>
+            <span>Update: 2s</span>
+          </div>
+        </div>
+
+        <!-- Gas cards grid -->
+        <div class="gas-grid">
+
+          <div class="gas-card" id="gasCardCO2">
+            <div class="gas-top">
+              <span class="gas-tag tag-co2">CO2</span>
+              <div><div class="gas-nm">Carbon Dioxide</div></div>
+              <span class="gas-status" id="stCO2">Normal</span>
+            </div>
+            <div class="gas-val-row"><span class="gas-val" id="valCO2">412</span><span class="gas-unit">ppm</span></div>
+            <div class="gas-bar-bg"><div class="gas-bar bar-co2" id="barCO2" style="width:20%"></div></div>
+            <div class="gas-range"><span>0</span><span>2000 ppm</span></div>
+            <canvas id="sparkCO2" class="spark-canvas" height="45"></canvas>
+          </div>
+
+          <div class="gas-card" id="gasCardCO">
+            <div class="gas-top">
+              <span class="gas-tag tag-co">CO</span>
+              <div><div class="gas-nm">Carbon Monoxide</div></div>
+              <span class="gas-status" id="stCO">Normal</span>
+            </div>
+            <div class="gas-val-row"><span class="gas-val" id="valCO">2.1</span><span class="gas-unit">ppm</span></div>
+            <div class="gas-bar-bg"><div class="gas-bar bar-co" id="barCO" style="width:4%"></div></div>
+            <div class="gas-range"><span>0</span><span>50 ppm</span></div>
+            <canvas id="sparkCO" class="spark-canvas" height="45"></canvas>
+          </div>
+
+          <div class="gas-card" id="gasCardNH3">
+            <div class="gas-top">
+              <span class="gas-tag tag-nh3">NH3</span>
+              <div><div class="gas-nm">Ammonia</div></div>
+              <span class="gas-status" id="stNH3">Normal</span>
+            </div>
+            <div class="gas-val-row"><span class="gas-val" id="valNH3">0.8</span><span class="gas-unit">ppm</span></div>
+            <div class="gas-bar-bg"><div class="gas-bar bar-nh3" id="barNH3" style="width:8%"></div></div>
+            <div class="gas-range"><span>0</span><span>10 ppm</span></div>
+            <canvas id="sparkNH3" class="spark-canvas" height="45"></canvas>
+          </div>
+
+          <div class="gas-card" id="gasCardH2">
+            <div class="gas-top">
+              <span class="gas-tag" style="background:#e0e7ff;color:#4338ca;">H2</span>
+              <div><div class="gas-nm">Hydrogen (MQ-2)</div></div>
+              <span class="gas-status" id="stH2">Normal</span>
+            </div>
+            <div class="gas-val-row"><span class="gas-val" id="valH2">0.5</span><span class="gas-unit">ppm</span></div>
+            <div class="gas-bar-bg"><div class="gas-bar" id="barH2" style="width:5%;background:#6366f1;"></div></div>
+            <div class="gas-range"><span>0</span><span>1000 ppm</span></div>
+            <canvas id="sparkH2" class="spark-canvas" height="45"></canvas>
+          </div>
+
+          <div class="gas-card" id="gasCardCH4">
+            <div class="gas-top">
+              <span class="gas-tag" style="background:#fef3c7;color:#b45309;">CH4</span>
+              <div><div class="gas-nm">Methane (MQ-2)</div></div>
+              <span class="gas-status" id="stCH4">Normal</span>
+            </div>
+            <div class="gas-val-row"><span class="gas-val" id="valCH4">1.2</span><span class="gas-unit">ppm</span></div>
+            <div class="gas-bar-bg"><div class="gas-bar" id="barCH4" style="width:8%;background:#f59e0b;"></div></div>
+            <div class="gas-range"><span>0</span><span>5000 ppm</span></div>
+            <canvas id="sparkCH4" class="spark-canvas" height="45"></canvas>
+          </div>
+
+          <div class="gas-card" id="gasCardBenzene">
+            <div class="gas-top">
+              <span class="gas-tag tag-benz">C6H6</span>
+              <div><div class="gas-nm">Benzene</div></div>
+              <span class="gas-status" id="stBenzene">Normal</span>
+            </div>
+            <div class="gas-val-row"><span class="gas-val" id="valBenzene">0.004</span><span class="gas-unit">ppm</span></div>
+            <div class="gas-bar-bg"><div class="gas-bar bar-benz" id="barBenzene" style="width:4%"></div></div>
+            <div class="gas-range"><span>0</span><span>0.1 ppm</span></div>
+            <canvas id="sparkBenzene" class="spark-canvas" height="45"></canvas>
+          </div>
+
+          <!-- History chart card -->
+          <div class="gas-card gas-history-card">
+            <div class="gas-nm" style="margin-bottom:0.5rem;font-size:0.82rem;font-weight:700;">History (40 readings)</div>
+            <div style="position:relative;width:100%;height:120px;">
+              <canvas id="aqHistoryChart"></canvas>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Alert banner -->
+      <div class="alert-strip hidden" id="alertBanner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;flex-shrink:0">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <span id="alertText">Air quality alert!</span>
+        <button onclick="document.getElementById('alertBanner').classList.add('hidden')" class="alert-x">✕</button>
+      </div>
+
+    </div>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
